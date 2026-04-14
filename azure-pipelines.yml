@@ -1,0 +1,156 @@
+# Azure DevOps Pipeline — RAG Evaluation Framework
+#
+# Stages:
+#   1. test    — unit tests, lint, type check
+#   2. evaluate — RAG evaluation quality gate (scaffold evaluators)
+#
+# Exit code mapping:
+#   0 = all thresholds passed  → pipeline succeeds
+#   1 = config error           → pipeline fails
+#   2 = runtime error          → pipeline fails
+#   3 = threshold breaches     → pipeline fails (quality gate)
+#
+# To add Azure SDK or LLM judge evaluators, configure a service
+# connection and set AZURE_OPENAI_API_KEY via a variable group.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  pythonVersion: "3.12"
+
+stages:
+  # ==============================================================
+  # Stage 1: Unit tests, lint, type check
+  # ==============================================================
+  - stage: Test
+    displayName: "Unit Tests & Lint"
+    jobs:
+      - job: TestMatrix
+        displayName: "Test"
+        strategy:
+          matrix:
+            Python310:
+              PYTHON_VER: "3.10"
+            Python311:
+              PYTHON_VER: "3.11"
+            Python312:
+              PYTHON_VER: "3.12"
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(PYTHON_VER)"
+            displayName: "Use Python $(PYTHON_VER)"
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -e ".[dev]"
+            displayName: "Install dependencies"
+
+          - script: ruff check src/ tests/
+            displayName: "Lint with ruff"
+
+          - script: pytest --cov --cov-report=term-missing --junitxml=test-results.xml
+            displayName: "Run tests"
+
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFiles: "test-results.xml"
+              testRunTitle: "Python $(PYTHON_VER) Tests"
+
+          - script: mypy src/
+            displayName: "Type check"
+            continueOnError: true
+
+  # ==============================================================
+  # Stage 2: RAG evaluation quality gate (scaffold evaluators)
+  #
+  # Runs the sample scaffold evaluation against the included
+  # synthetic dataset. No Azure credentials needed.
+  # If any threshold is breached, the pipeline fails.
+  # ==============================================================
+  - stage: Evaluate
+    displayName: "RAG Eval — Quality Gate"
+    dependsOn: Test
+    condition: succeeded()
+    jobs:
+      - job: ScaffoldEval
+        displayName: "Scaffold evaluation"
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(pythonVersion)"
+            displayName: "Use Python $(pythonVersion)"
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -e "."
+            displayName: "Install framework"
+
+          - script: rag-eval --config project-configs/sample-rag.yaml
+            displayName: "Run scaffold evaluation"
+
+          - task: PublishBuildArtifacts@1
+            condition: always()
+            inputs:
+              pathToPublish: "output/sample-rag"
+              artifactName: "eval-reports-scaffold"
+            displayName: "Publish eval reports"
+
+  # ==============================================================
+  # Stage 3 (optional): Azure SDK evaluation quality gate
+  #
+  # Uncomment and configure a variable group with Azure credentials
+  # to enable Azure-backed evaluators as a merge gate.
+  #
+  # Required variables:
+  #   AZURE_OPENAI_API_KEY (secret)
+  #   AZURE_SUBSCRIPTION_ID
+  #   AZURE_TENANT_ID
+  #   AZURE_CLIENT_ID
+  #   AZURE_CLIENT_SECRET (secret)
+  # ==============================================================
+  # - stage: EvaluateAzure
+  #   displayName: "RAG Eval — Azure SDK Quality Gate"
+  #   dependsOn: Test
+  #   condition: succeeded()
+  #   variables:
+  #     - group: rag-eval-azure-credentials
+  #   jobs:
+  #     - job: AzureEval
+  #       displayName: "Azure SDK evaluation"
+  #       steps:
+  #         - task: UsePythonVersion@0
+  #           inputs:
+  #             versionSpec: "$(pythonVersion)"
+  #
+  #         - script: |
+  #             python -m pip install --upgrade pip
+  #             pip install -e ".[all]"
+  #           displayName: "Install framework + Azure extras"
+  #
+  #         - task: AzureCLI@2
+  #           inputs:
+  #             azureSubscription: "your-service-connection"
+  #             scriptType: bash
+  #             scriptLocation: inlineScript
+  #             inlineScript: |
+  #               rag-eval --config project-configs/sample-rag-phase2.yaml
+  #           displayName: "Run Azure evaluation"
+  #
+  #         - task: PublishBuildArtifacts@1
+  #           condition: always()
+  #           inputs:
+  #             pathToPublish: "output/sample-rag-phase2"
+  #             artifactName: "eval-reports-azure"

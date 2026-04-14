@@ -1,0 +1,58 @@
+# Sample Phase 2 — Local Mode (all three evaluator tiers)
+#
+# Includes scaffold, Azure SDK, and LLM-as-a-judge evaluators.
+# Without Azure credentials, Azure-backed evaluators report errors.
+# The scaffold evaluators work offline.
+#
+# Mode: LOCAL — all evaluators run in-process.
+
+project_name: sample-rag-phase2
+dataset_path: datasets/sample/eval.jsonl
+mode: local
+
+report_format:
+  - json
+  - markdown
+  - html
+output_dir: output
+
+local_mode:
+  evaluators:
+    - answer_presence
+    - context_presence
+    - exact_match_accuracy
+    # Azure SDK evaluators (require azure-ai-evaluation + credentials):
+    - groundedness
+    - relevance
+    - retrieval
+    - response_completeness
+    # LLM judges (require Azure OpenAI endpoint):
+    - accuracy_judge
+    - hallucination_judge
+    - citation_judge
+
+  thresholds:
+    answer_presence: 0.90
+    context_presence: 0.80
+    exact_match_accuracy: 0.70
+
+  azure:
+    endpoint: "https://your-resource.openai.azure.com"
+    deployment_name: "gpt-4"
+    api_version: "2024-12-01-preview"
+    credential_type: default
+
+  judge:
+    model: gpt-4.1
+    temperature: 0.0
+    max_tokens: 1024
+    azure_endpoint: "https://your-resource.openai.azure.com"
+    api_version: "2024-12-01-preview"
+
+  judge_model: gpt-4.1
+  evaluator_options: {}
+
+metadata:
+  team: platform-ai
+  environment: development
+  phase: "2"

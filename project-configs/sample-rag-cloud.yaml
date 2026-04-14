@@ -1,0 +1,54 @@
+# Cloud Evaluation Configuration
+#
+# This config submits evaluation jobs to Azure AI Foundry instead of
+# running evaluators in-process.
+#
+# Mode: CLOUD — evaluators run remotely via Azure AI Evaluation SDK.
+# Only the 4 Azure SDK evaluators are available in this mode.
+#
+# Prerequisites:
+#   pip install -e ".[cloud]"
+#   Azure credentials configured (DefaultAzureCredential, API key, or connection string)
+
+project_name: sample-rag-cloud
+dataset_path: datasets/sample/eval.jsonl
+mode: cloud
+
+report_format:
+  - json
+  - markdown
+  - html
+output_dir: output-cloud
+
+cloud_mode:
+  evaluators:
+    - groundedness
+    - relevance
+    - retrieval
+    - response_completeness
+
+  thresholds:
+    groundedness: 0.80
+    relevance: 0.75
+
+  azure:
+    endpoint: "https://your-resource.openai.azure.com"
+    deployment_name: "gpt-4"
+    api_version: "2024-12-01-preview"
+    credential_type: default
+    # is_reasoning_model: true  # uncomment for o-series / reasoning models
+
+  foundry:
+    # REQUIRED: Your AI Foundry project endpoint URL.
+    # Find it in AI Foundry portal → project Settings → Overview.
+    endpoint: "https://your-project.services.ai.azure.com/api/projects/your-proj"
+    subscription_id: "00000000-0000-0000-0000-000000000000"
+    resource_group: your-resource-group
+    project_name: your-foundry-project
+    credential_type: default
+    poll_interval_seconds: 10
+    poll_timeout_seconds: 1800
+
+metadata:
+  team: platform-ai
+  environment: development
