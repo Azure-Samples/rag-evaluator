@@ -9,6 +9,7 @@
 | First time evaluating a RAG system             | Local            |
 | Need maximum control over evaluators           | Local            |
 | Want LLM-as-a-Judge assessment                 | Local            |
+| Evaluating text-to-SQL output                  | Local            |
 | Already using Azure AI Foundry                 | Cloud            |
 | Don't want to manage Azure OpenAI credentials  | Cloud            |
 | Need only groundedness/relevance/retrieval     | Either           |
@@ -176,7 +177,24 @@ For most development, `az login` is sufficient.
 ### Do I need an Azure OpenAI resource for local mode?
 
 Only if you use Azure SDK evaluators (tier 2) or LLM judges (tier 3).
-Scaffold evaluators (tier 1) have no Azure dependency.
+Scaffold evaluators (tier 1) and most SQL evaluators (tier 4) have no
+Azure dependency.  The `sql_semantic_judge` is the exception — it
+requires Azure OpenAI like other LLM judges.
+
+### What's the difference between RAG and SQL evaluators?
+
+**RAG evaluators** assess natural-language responses from a
+Retrieval-Augmented Generation pipeline.  They check things like
+groundedness in context, factual accuracy, and citation quality.
+
+**SQL evaluators** assess generated SQL queries from text-to-SQL
+systems.  They check syntax validity, safety policy compliance,
+schema correctness, and query result accuracy.
+
+The two sets use **different dataset fields** and target different use
+cases.  Do not mix them in the same dataset unless all required fields
+are present.  See [Metrics Catalog](metrics-catalog.md) for the full
+field requirements.
 
 ### What Azure AI Foundry permissions do I need for cloud mode?
 
@@ -198,9 +216,9 @@ Check spelling — common mistakes:
 
 ### `ValueError: Invalid evaluators for cloud mode`
 
-Cloud mode only supports 4 evaluators: `groundedness`, `relevance`,
-`retrieval`, `response_completeness`.  You may have scaffold or judge
-evaluators in your cloud config.
+Cloud mode only supports 4 RAG evaluators: `groundedness`, `relevance`,
+`retrieval`, `response_completeness`.  You may have scaffold, judge,
+or SQL evaluators in your cloud config — these are local-mode only.
 
 ### `ModuleNotFoundError: azure.ai.evaluation`
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Each RAG project is configured through a YAML file placed in the `project-configs/` directory. The configuration drives every aspect of an evaluation run: which dataset to load, which evaluators to run, what thresholds to enforce, whether to run locally or in the cloud, and where to write reports.
+Each RAG project is configured through a YAML file. Template configs are available in `project-configs/templates/` organised by evaluation type (RAG, SQL). The configuration drives every aspect of an evaluation run: which dataset to load, which evaluators to run, what thresholds to enforce, whether to run locally or in the cloud, and where to write reports.
 
 ## Full Example — Local Mode
 
@@ -102,6 +102,43 @@ metadata:
   environment: staging
 ```
 
+## Full Example — SQL Evaluation (Local Mode)
+
+```yaml
+project_name: my-sql-eval
+dataset_path: datasets/sample/sql-evaluation/sql_eval_dataset.jsonl
+mode: local
+
+local_mode:
+  evaluators:
+    - sql_syntax_validity
+    - sql_safety_policy
+    - sql_schema_validity
+    # - sql_semantic_judge    # requires azure + judge sections
+    # - sql_execution_success # requires database_path
+    # - sql_result_match      # requires database_path + expected_result
+  thresholds:
+    sql_syntax_validity: 0.95
+    sql_safety_policy: 1.00
+  evaluator_options:
+    sql_safety_policy:
+      readonly: true
+      blocked_operations: [DROP, DELETE, TRUNCATE]
+
+report_format:
+  - json
+  - markdown
+  - html
+
+output_dir: output
+```
+
+> **RAG vs. SQL:** RAG and SQL evaluators use different dataset fields
+> and assess different things.  Do not mix RAG evaluators (which expect
+> `contexts`, `ground_truth_answer`) with SQL evaluators (which expect
+> `schema_context`, `expected_result`) in the same config unless your
+> dataset provides all required fields.
+
 ## Field Reference
 
 ### Core Fields
@@ -123,7 +160,7 @@ metadata:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `evaluators` | list[string] | Yes | Evaluator names from the local catalog (11 available). |
+| `evaluators` | list[string] | Yes | Evaluator names from the local catalog (17 available: 11 RAG + 6 SQL). |
 | `thresholds` | dict[string, float] | No | Minimum scores per evaluator (0.0–1.0). |
 | `azure` | object | No | Azure OpenAI connection settings. See below. |
 | `judge` | object | No | LLM-as-a-judge settings. See below. |
@@ -217,7 +254,7 @@ local_mode:
 
 ## Templates
 
-A starter template is available at `project-configs/templates/project-template.yaml`. Copy and customise it for your project.
+A starter template is available at `project-configs/templates/rag-eval/project-template.yaml`. Copy and customise it for your project.
 
 ## CLI Override
 
@@ -225,10 +262,10 @@ The `--output` CLI flag overrides the `output_dir` field, and `--mode` overrides
 
 ```bash
 # Override output directory
-rag-eval --config project-configs/hr-rag.yaml --output /tmp/eval-output
+rag-eval --config project-configs/templates/rag-eval/project-template.yaml --output /tmp/eval-output
 
 # Override execution mode
-rag-eval --config project-configs/hr-rag.yaml --mode cloud
+rag-eval --config project-configs/templates/rag-eval/project-template.yaml --mode cloud
 ```
 
 ## Threshold Behaviour

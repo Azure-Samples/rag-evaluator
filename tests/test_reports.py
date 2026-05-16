@@ -25,7 +25,7 @@ def sample_run_result() -> EvaluationRunResult:
     return EvaluationRunResult(
         project_name="test-project",
         timestamp="2026-03-30T12:00:00Z",
-        dataset_path="datasets/sample/eval.jsonl",
+        dataset_path="datasets/rag-evaluation/eval.jsonl",
         total_records=2,
         evaluators_used=["answer_presence", "exact_match_accuracy"],
         record_results=[

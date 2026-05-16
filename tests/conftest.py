@@ -56,7 +56,7 @@ def make_config(**overrides: Any) -> dict[str, Any]:
 
     base: dict[str, Any] = {
         "project_name": "test-project",
-        "dataset_path": "datasets/sample/eval.jsonl",
+        "dataset_path": "datasets/rag-evaluation/eval.jsonl",
         "mode": "local",
         "local_mode": {
             "evaluators": [
@@ -76,7 +76,7 @@ def make_phase2_config(**overrides: Any) -> dict[str, Any]:
     """Return a config dict that includes Phase 2 fields (azure + judge)."""
     base: dict[str, Any] = {
         "project_name": "test-project",
-        "dataset_path": "datasets/sample/eval.jsonl",
+        "dataset_path": "datasets/rag-evaluation/eval.jsonl",
         "mode": "local",
         "local_mode": {
             "evaluators": [

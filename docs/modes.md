@@ -15,7 +15,7 @@ trade-offs:
 | Dimension          | Local Mode                          | Cloud Mode                          |
 |--------------------|-------------------------------------|-------------------------------------|
 | **Where it runs**  | In your Python process              | Azure AI Foundry service            |
-| **Evaluator count**| 11 (scaffold + Azure SDK + judges)  | 4 (Azure SDK only)                  |
+| **Evaluator count**| 17 (11 RAG + 6 SQL)                 | 4 (Azure SDK RAG only)              |
 | **LLM judges**     | Yes — full control over prompt & model | No                                |
 | **Custom scaffold** | Yes                                | No (SDK evaluators only)            |
 | **Azure required** | Only for SDK/judge evaluators       | Always                              |
@@ -49,7 +49,7 @@ The mode determines which configuration block is used:
 You can override the mode from the command line:
 
 ```bash
-rag-eval --config project-configs/my-project.yaml --mode cloud
+rag-eval --config my-project.yaml --mode cloud
 ```
 
 ---
@@ -120,6 +120,8 @@ See [Cloud Mode Guide](cloud-mode.md) for full details.
 
 ## Evaluator Catalog by Mode
 
+### RAG Evaluators
+
 | Evaluator                 | Local | Cloud | Category     | Requires              |
 |---------------------------|:-----:|:-----:|--------------|----------------------|
 | `answer_presence`         | ✅    | —     | Scaffold     | Nothing              |
@@ -133,6 +135,17 @@ See [Cloud Mode Guide](cloud-mode.md) for full details.
 | `hallucination_judge`     | ✅    | —     | LLM Judge    | Azure OpenAI         |
 | `citation_judge`          | ✅    | —     | LLM Judge    | Azure OpenAI         |
 | `policy_compliance_judge` | ✅    | —     | LLM Judge    | Azure OpenAI         |
+
+### SQL Evaluators
+
+| Evaluator                 | Local | Cloud | Category     | Requires              |
+|---------------------------|:-----:|:-----:|--------------|----------------------|
+| `sql_syntax_validity`     | ✅    | —     | SQL (dataset-only) | sqlglot        |
+| `sql_safety_policy`       | ✅    | —     | SQL (dataset-only) | sqlglot        |
+| `sql_schema_validity`     | ✅    | —     | SQL (dataset-only) | sqlglot        |
+| `sql_semantic_judge`      | ✅    | —     | SQL (LLM judge)    | sqlglot + Azure OpenAI |
+| `sql_execution_success`   | ✅    | —     | SQL (DB-backed)    | sqlglot + SQLite DB  |
+| `sql_result_match`        | ✅    | —     | SQL (DB-backed)    | sqlglot + SQLite DB  |
 
 For detailed descriptions of each metric, see
 [Metrics Catalog](metrics-catalog.md).
@@ -158,6 +171,7 @@ context without needing to check the YAML config.
 Use **Local Mode** when:
 - You need LLM-as-a-judge evaluators (accuracy, hallucination, citation).
 - You want scaffold checks (answer_presence, context_presence, exact_match).
+- You want SQL evaluators for text-to-SQL assessment.
 - You want full control over the evaluation process and prompts.
 - You're running offline or in a CI pipeline without Foundry access.
 - You want to iterate quickly on evaluator configuration.

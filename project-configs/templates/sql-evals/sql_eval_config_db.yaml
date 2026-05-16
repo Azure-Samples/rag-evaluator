@@ -1,0 +1,61 @@
+# SQL Evaluation — DB-Backed + Dataset-Only Evaluators
+#
+# Evaluates LLM-generated SQL queries using five SQL evaluators:
+#   - 3 dataset-only (syntax, safety, schema)
+#   - 2 DB-backed (execution success, result match)
+#
+# The DB-backed evaluators execute SQL against a local SQLite database.
+# Create the sample database first:
+#   python examples/sql-evaluation/create_sample_sqlite_db.py
+#
+# Mode: LOCAL — all evaluators run in the current Python process.
+#
+# Usage:
+#   rag-eval --config project-configs/templates/sql-evals/sql_eval_config_db.yaml
+
+project_name: sql-eval-db-backed
+dataset_path: datasets/sample/sql-evaluation/sql_eval_dataset_db.jsonl
+mode: local
+
+report_format:
+  - json
+  - markdown
+  - html
+output_dir: output
+
+local_mode:
+  evaluators:
+    # Dataset-only evaluators (no database required):
+    - sql_syntax_validity
+    - sql_safety_policy
+    - sql_schema_validity
+
+    # DB-backed evaluators (requires configured test database):
+    - sql_execution_success
+    - sql_result_match
+
+  thresholds:
+    sql_syntax_validity: 0.80
+    sql_safety_policy: 1.0
+    sql_schema_validity: 0.80
+    sql_execution_success: 0.70
+    sql_result_match: 0.60
+
+  evaluator_options:
+    sql_execution_success:
+      database_type: sqlite
+      database_path: examples/sql-evaluation/sample_sql_eval.db
+      readonly: true
+      timeout_seconds: 5.0
+      max_rows: 1000
+      allow_multiple_statements: false
+
+    sql_result_match:
+      database_type: sqlite
+      database_path: examples/sql-evaluation/sample_sql_eval.db
+      readonly: true
+      timeout_seconds: 5.0
+      max_rows: 1000
+      comparison_mode: unordered
+      numeric_tolerance: 0.001
+      allow_multiple_statements: false

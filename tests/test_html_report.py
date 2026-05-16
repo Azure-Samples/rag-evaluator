@@ -18,7 +18,7 @@ def _make_run_result(**overrides) -> EvaluationRunResult:  # type: ignore[no-unt
     defaults = dict(
         project_name="html-test",
         timestamp="2026-06-01T12:00:00Z",
-        dataset_path="datasets/sample/eval.jsonl",
+        dataset_path="datasets/rag-evaluation/eval.jsonl",
         total_records=2,
         evaluators_used=["answer_presence", "exact_match_accuracy"],
         record_results=[

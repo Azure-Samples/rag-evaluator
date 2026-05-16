@@ -2,8 +2,8 @@
 
 Local mode runs all evaluators **in the current Python process**.  This
 is the default execution mode and supports the full evaluator catalog:
-scaffold checks, Azure AI Evaluation SDK evaluators, and LLM-as-a-judge
-evaluators.
+scaffold checks, Azure AI Evaluation SDK evaluators, LLM-as-a-judge
+evaluators, and SQL evaluators.
 
 ---
 
@@ -14,6 +14,7 @@ evaluators.
 | Scaffold         | `pip install -e .`                  | No              |
 | Azure SDK        | `pip install -e ".[azure]"`         | Yes             |
 | LLM Judges       | `pip install -e ".[judges]"`        | Yes             |
+| SQL              | `pip install -e ".[sql]"`           | No              |
 | All              | `pip install -e ".[all]"`           | Yes             |
 
 ### Azure Credentials (for SDK + Judge evaluators)
@@ -58,10 +59,10 @@ local_mode:
 No Azure credentials needed.  Run with:
 
 ```bash
-rag-eval --config project-configs/my-project.yaml
+rag-eval --config my-project.yaml
 ```
 
-### Full (all three tiers)
+### Full (all three RAG tiers)
 
 ```yaml
 project_name: my-rag-full
@@ -168,6 +169,58 @@ scores (normalised to 0.0–1.0) with a natural-language reason.
 | `hallucination_judge`    | Claims not supported by context                    | question, response, contexts |
 | `citation_judge`         | Evidence usage from context                        | question, response, contexts |
 | `policy_compliance_judge`| Compliance with a policy document                  | question, response + metadata.policy |
+
+### Tier 4 — SQL Evaluators
+
+SQL evaluators assess generated SQL queries for **text-to-SQL** use
+cases.  They are independent of the RAG evaluators above — use one set
+or the other depending on your application.
+
+> **Note:** SQL evaluators use a separate dataset schema.  The `response`
+> field contains the generated SQL query (not a natural-language answer).
+> See [Datasets](datasets.md) for the SQL dataset format.
+
+**Install:** `pip install -e ".[sql]"`
+
+#### Dataset-only (no database required)
+
+| Evaluator              | What It Checks                                    | Required Fields     |
+|------------------------|---------------------------------------------------|---------------------|
+| `sql_syntax_validity`  | SQL parses without errors                          | response            |
+| `sql_safety_policy`    | SQL complies with safety policies                  | response            |
+| `sql_schema_validity`  | SQL references valid tables/columns                | response, schema_context |
+| `sql_semantic_judge`   | SQL semantically answers the question (LLM judge)  | question, response, schema_context |
+
+#### DB-backed (requires configured SQLite database)
+
+| Evaluator              | What It Checks                                    | Required Fields     |
+|------------------------|---------------------------------------------------|---------------------|
+| `sql_execution_success`| SQL executes without runtime errors                | response            |
+| `sql_result_match`     | Query results match expected output                | response, expected_result |
+
+**SQL-only configuration example:**
+
+```yaml
+project_name: my-sql-eval
+dataset_path: datasets/sample/sql-evaluation/sql_eval_dataset.jsonl
+mode: local
+
+local_mode:
+  evaluators:
+    - sql_syntax_validity
+    - sql_safety_policy
+    - sql_schema_validity
+  thresholds:
+    sql_syntax_validity: 0.90
+    sql_safety_policy: 1.00
+  evaluator_options:
+    sql_safety_policy:
+      readonly: true
+      blocked_operations: [DROP, DELETE, TRUNCATE]
+```
+
+See the SQL config templates at `project-configs/templates/sql-evals/`
+for complete examples.
 
 ---
 

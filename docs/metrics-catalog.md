@@ -9,13 +9,22 @@ support it.
 
 ## Overview
 
-The framework provides **11 evaluators** organized into three tiers:
+The framework provides **17 evaluators** organized into two domains —
+**RAG** (11 evaluators across three tiers) and **SQL** (6 evaluators
+across two tiers):
 
-| Tier           | Count | Dependencies          | Modes          |
-|----------------|:-----:|----------------------|----------------|
-| Scaffold       | 3     | None (built-in)      | Local only     |
-| Azure SDK      | 4     | azure-ai-evaluation  | Local + Cloud  |
-| LLM Judge      | 4     | openai + Azure creds | Local only     |
+| Domain | Tier           | Count | Dependencies          | Modes          |
+|--------|----------------|:-----:|----------------------|----------------|
+| RAG    | Scaffold       | 3     | None (built-in)      | Local only     |
+| RAG    | Azure SDK      | 4     | azure-ai-evaluation  | Local + Cloud  |
+| RAG    | LLM Judge      | 4     | openai + Azure creds | Local only     |
+| SQL    | Dataset-only   | 4     | sqlglot              | Local only     |
+| SQL    | DB-backed      | 2     | sqlglot + SQLite DB  | Local only     |
+
+> **RAG vs. SQL:** RAG evaluators assess natural-language responses against
+> retrieved context.  SQL evaluators assess generated SQL queries against
+> schema definitions and optionally a test database.  Choose the evaluators
+> that match your use case — you can even mix both in a single config.
 
 ---
 
@@ -294,6 +303,158 @@ policy.
 
 ---
 
+## Tier 4 — SQL Evaluators
+
+SQL evaluators assess generated SQL queries for text-to-SQL use cases.
+They are split into **dataset-only** evaluators (analyse the SQL string
+without executing it) and **DB-backed** evaluators (run the SQL against
+a test database).
+
+**Prerequisites:**
+- `pip install -e ".[sql]"` (or `".[all]"`) — installs `sqlglot`
+- For DB-backed evaluators: a SQLite test database + `database_path` in config
+
+> **RAG vs. SQL:** RAG evaluators score natural-language answers against
+> retrieved context.  SQL evaluators score generated SQL against schema
+> definitions and optionally a test database.  The two sets target
+> different use cases and should not be mixed in the same dataset.
+
+### `sql_syntax_validity`
+
+| Property          | Value                                            |
+|-------------------|--------------------------------------------------|
+| **Category**      | SQL — Dataset-only                               |
+| **Modes**         | Local                                            |
+| **Required fields** | `response`                                    |
+| **Score range**   | 0.0 or 1.0                                      |
+| **Dependencies**  | sqlglot                                          |
+
+**What it checks:** Whether the generated SQL parses successfully.
+
+**Scoring:**
+- **1.0** — SQL parsed without errors (one or more valid statements)
+- **0.0** — SQL failed to parse, is empty, or violates multi-statement policy
+
+---
+
+### `sql_safety_policy`
+
+| Property          | Value                                            |
+|-------------------|--------------------------------------------------|
+| **Category**      | SQL — Dataset-only                               |
+| **Modes**         | Local                                            |
+| **Required fields** | `response`                                    |
+| **Score range**   | 0.0 or 1.0                                      |
+| **Dependencies**  | sqlglot                                          |
+
+**What it checks:** Whether the SQL complies with configurable safety
+policies — e.g. read-only mode, blocked operations (DROP, DELETE, etc.),
+blocked tables, required LIMIT clauses, and tenant filters.
+
+**Scoring:**
+- **1.0** — SQL complies with all configured policies
+- **0.0** — One or more policy violations detected
+
+**Configuration:**
+```yaml
+evaluator_options:
+  sql_safety_policy:
+    readonly: true
+    blocked_operations: [DROP, DELETE, TRUNCATE]
+    require_limit: true
+```
+
+---
+
+### `sql_schema_validity`
+
+| Property          | Value                                            |
+|-------------------|--------------------------------------------------|
+| **Category**      | SQL — Dataset-only                               |
+| **Modes**         | Local                                            |
+| **Required fields** | `response`, `schema_context`                  |
+| **Score range**   | 0.0 or 1.0                                      |
+| **Dependencies**  | sqlglot                                          |
+
+**What it checks:** Whether the SQL references only tables and columns
+that exist in the declared schema context.
+
+**Scoring:**
+- **1.0** — All tables and columns are valid per schema
+- **0.0** — Unknown table or column references found
+
+---
+
+### `sql_semantic_judge`
+
+| Property          | Value                                            |
+|-------------------|--------------------------------------------------|
+| **Category**      | SQL — LLM Judge                                  |
+| **Modes**         | Local                                            |
+| **Required fields** | `question`, `response`, `schema_context`      |
+| **Score range**   | 0.0–1.0 (continuous)                             |
+| **Dependencies**  | sqlglot, Azure OpenAI + `judge` config           |
+
+**What it assesses:** Whether the generated SQL semantically answers
+the user's question, given the database schema and optionally a
+reference SQL query.
+
+---
+
+### `sql_execution_success`
+
+| Property          | Value                                            |
+|-------------------|--------------------------------------------------|
+| **Category**      | SQL — DB-backed                                  |
+| **Modes**         | Local                                            |
+| **Required fields** | `response`                                    |
+| **Score range**   | 0.0 or 1.0                                      |
+| **Dependencies**  | sqlglot, configured SQLite database              |
+
+**What it checks:** Whether the SQL executes against a test database
+without raising a runtime error.
+
+**Scoring:**
+- **1.0** — SQL executed successfully
+- **0.0** — SQL raised an error at runtime
+
+**Configuration:**
+```yaml
+evaluator_options:
+  sql_execution_success:
+    database_path: path/to/test.db
+    timeout_seconds: 5
+```
+
+---
+
+### `sql_result_match`
+
+| Property          | Value                                            |
+|-------------------|--------------------------------------------------|
+| **Category**      | SQL — DB-backed                                  |
+| **Modes**         | Local                                            |
+| **Required fields** | `response`, `expected_result`                 |
+| **Score range**   | 0.0 or 1.0                                      |
+| **Dependencies**  | sqlglot, configured SQLite database              |
+
+**What it checks:** Whether the actual query results match the expected
+output provided in the dataset.
+
+**Scoring:**
+- **1.0** — Actual result set matches expected result set
+- **0.0** — Results differ (row count, values, or order mismatch)
+
+**Configuration:**
+```yaml
+evaluator_options:
+  sql_result_match:
+    database_path: path/to/test.db
+    comparison_mode: exact  # or "unordered"
+```
+
+---
+
 ## Score Normalisation
 
 All evaluators in this framework produce scores on a **0.0–1.0 scale**.
@@ -303,18 +464,32 @@ All evaluators in this framework produce scores on a **0.0–1.0 scale**.
 - **Azure SDK evaluators** produce 1–5 scores that are mapped:
   `normalised = (raw - 1) / 4`, clamped to [0.0, 1.0].
 - **LLM judges** produce 1–5 scores that are mapped the same way.
+- **SQL evaluators** produce binary 0.0 or 1.0 scores (except
+  `sql_semantic_judge` which produces continuous 0.0–1.0).
 
 ---
 
 ## Required Dataset Fields
 
+### RAG Evaluators
+
 | Field               | Type       | Evaluators That Use It                    |
 |--------------------|------------|-------------------------------------------|
-| `question`         | string     | All evaluators                            |
-| `response`         | string     | All evaluators                            |
+| `question`         | string     | All RAG evaluators                        |
+| `response`         | string     | All RAG evaluators                        |
 | `contexts`         | list[str]  | groundedness, retrieval, hallucination_judge, citation_judge |
 | `ground_truth_answer` | string  | exact_match_accuracy, response_completeness, accuracy_judge |
 | `metadata.policy`  | string     | policy_compliance_judge                   |
+
+### SQL Evaluators
+
+| Field               | Type       | Evaluators That Use It                    |
+|--------------------|------------|-------------------------------------------|
+| `response`         | string     | All SQL evaluators (the generated SQL)    |
+| `question`         | string     | sql_semantic_judge                        |
+| `schema_context`   | string     | sql_schema_validity, sql_semantic_judge   |
+| `expected_sql`     | string     | sql_semantic_judge (optional reference)   |
+| `expected_result`  | list[dict] | sql_result_match                          |
 
 **Field presence handling:**
 - If a required field is missing/empty, the evaluator is **skipped**

@@ -38,6 +38,9 @@ judges = [
     "openai>=1.0",
     "azure-identity>=1.15.0",
 ]
+sql = [
+    "sqlglot>=20.0",
+]
 cloud = [
     "azure-ai-projects>=1.0.0b1",
     "azure-ai-evaluation>=1.0.0",
@@ -48,6 +51,7 @@ all = [
     "azure-ai-projects>=1.0.0b1",
     "azure-identity>=1.15.0",
     "openai>=1.0",
+    "sqlglot>=20.0",
 ]
 dev = [
     "pytest>=7.0",

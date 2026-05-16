@@ -2,8 +2,8 @@
 
 Usage
 -----
-    python -m rag_eval_framework.cli.run --config project-configs/sample-rag.yaml
-    rag-eval --config project-configs/sample-rag.yaml
+    python -m rag_eval_framework.cli.run --config path/to/config.yaml
+    rag-eval --config path/to/config.yaml
 """
 
 from __future__ import annotations

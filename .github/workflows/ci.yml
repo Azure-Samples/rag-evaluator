@@ -71,14 +71,14 @@ jobs:
           pip install -e "."
 
       - name: Run scaffold evaluation
-        run: rag-eval --config project-configs/sample-rag.yaml
+        run: rag-eval --config project-configs/templates/sql-evals/sql_eval_config.yaml
 
       - name: Upload evaluation reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eval-reports-scaffold
-          path: output/sample-rag/
+          path: output/sql-eval-dataset-only/
 
   # ---------------------------------------------------------------
   # Job 3 (optional): RAG evaluation with Azure SDK evaluators
@@ -117,7 +117,7 @@ jobs:
   #     - name: Run Azure evaluation
   #       env:
   #         AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-  #       run: rag-eval --config project-configs/sample-rag-phase2.yaml
+  #       run: rag-eval --config project-configs/templates/rag-eval/project-template.yaml
   #
   #     - name: Upload evaluation reports
   #       if: always()

@@ -149,11 +149,14 @@ rag-eval-framework/
 │   └── utils/
 │
 ├── project-configs/
-│   ├── sample-rag.yaml
 │   └── templates/
+│       ├── rag-eval/
+│       └── sql-evals/
 │
 ├── datasets/
+│   ├── rag-evaluation/
 │   └── sample/
+│       └── sql-evaluation/
 │
 ├── docs/
 │   ├── architecture.md
@@ -300,7 +303,7 @@ CLI example:
 
 ```bash
 python -m rag_eval_framework.cli.run \
-  --config project-configs/hr-rag.yaml
+  --config project-configs/templates/rag-eval/project-template.yaml
 ```
 
 Responsibilities:

@@ -48,6 +48,45 @@ class EvaluationRecord(BaseModel):
         description="Arbitrary metadata for filtering or grouping.",
     )
 
+    # --- SQL evaluation fields --------------------------------------------
+
+    schema_context: str = Field(
+        default="",
+        description="Database schema description for SQL evaluation.",
+    )
+    expected_sql: str = Field(
+        default="",
+        description="Reference SQL query for comparison.",
+    )
+    expected_behavior: str = Field(
+        default="",
+        description="Natural-language description of expected SQL behavior.",
+    )
+    expected_result: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Expected query result rows for result-match evaluation.",
+    )
+    allowed_tables: list[str] = Field(
+        default_factory=list,
+        description="Tables the SQL is permitted to reference.",
+    )
+    blocked_tables: list[str] = Field(
+        default_factory=list,
+        description="Tables the SQL must NOT reference.",
+    )
+    allowed_columns: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Per-table column allowlists for schema validation.",
+    )
+    blocked_operations: list[str] = Field(
+        default_factory=list,
+        description="SQL operations that are forbidden (e.g., DROP, DELETE).",
+    )
+    policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="SQL safety policy flags (readonly_only, require_limit, etc.).",
+    )
+
     # --- Validators -------------------------------------------------------
 
     @field_validator("response")

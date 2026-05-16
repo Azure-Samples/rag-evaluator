@@ -159,6 +159,21 @@ def _create_default_registry() -> EvaluatorRegistry:
     registry.register(CitationJudge)
     registry.register(PolicyComplianceJudge)
 
+    # SQL evaluators
+    from rag_eval_framework.evaluators.sql.execution import SqlExecutionSuccessEvaluator
+    from rag_eval_framework.evaluators.sql.result_match import SqlResultMatchEvaluator
+    from rag_eval_framework.evaluators.sql.safety import SqlSafetyPolicyEvaluator
+    from rag_eval_framework.evaluators.sql.schema import SqlSchemaValidityEvaluator
+    from rag_eval_framework.evaluators.sql.semantic_judge import SqlSemanticJudge
+    from rag_eval_framework.evaluators.sql.syntax import SqlSyntaxValidityEvaluator
+
+    registry.register(SqlSyntaxValidityEvaluator)
+    registry.register(SqlSafetyPolicyEvaluator)
+    registry.register(SqlSchemaValidityEvaluator)
+    registry.register(SqlSemanticJudge)
+    registry.register(SqlExecutionSuccessEvaluator)
+    registry.register(SqlResultMatchEvaluator)
+
     return registry
 
 

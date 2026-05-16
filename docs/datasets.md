@@ -104,7 +104,7 @@ python scripts/collect_rag_data.py \
 **3. Run the evaluation**:
 
 ```bash
-rag-eval --config project-configs/my-project.yaml
+rag-eval --config my-project.yaml
 ```
 
 #### Adapters
@@ -118,7 +118,7 @@ Custom adapters can be added by subclassing `RagAdapter` in the script and regis
 
 See `scripts/collect_rag_data.py --help` for all options (API key, field mapping, timeout, rate-limit delay).
 
-A sample questions file is at `datasets/sample/questions.csv`.
+A sample questions file is at `datasets/rag-evaluation/questions.csv`.
 
 ### Manual creation script
 
@@ -142,6 +142,25 @@ with open("datasets/my-project/eval.jsonl", "w") as f:
         f.write(json.dumps(r) + "\n")
 ```
 
-## Sample Dataset
+## Sample Datasets
 
-A sample dataset is provided at `datasets/sample/eval.jsonl` with 10 records covering HR policy, IT support, and benefits questions.
+### RAG Evaluation
+
+A sample RAG dataset is provided at `datasets/rag-evaluation/eval.jsonl` with 10 records covering HR policy, IT support, and benefits questions.
+
+### SQL Evaluation
+
+Sample SQL datasets are at `datasets/sample/sql-evaluation/`:
+
+- `sql_eval_dataset.jsonl` — 12 dataset-only test cases (syntax, safety, schema, semantic)
+- `sql_eval_dataset_db.jsonl` — 18 DB-backed test cases (execution, result match)
+
+SQL datasets use the same `EvaluationRecord` schema but rely on different fields:
+
+| Field | Usage |
+|---|---|
+| `response` | The generated SQL query |
+| `schema_context` | DDL / table schema (for schema validation and semantic judge) |
+| `expected_sql` | Reference SQL (optional, for semantic judge) |
+| `expected_result` | Expected query output (for result match) |
+| `expected_behavior` | Natural-language description of expected behaviour |

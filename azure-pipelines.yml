@@ -98,13 +98,13 @@ stages:
               pip install -e "."
             displayName: "Install framework"
 
-          - script: rag-eval --config project-configs/sample-rag.yaml
+          - script: rag-eval --config project-configs/templates/sql-evals/sql_eval_config.yaml
             displayName: "Run scaffold evaluation"
 
           - task: PublishBuildArtifacts@1
             condition: always()
             inputs:
-              pathToPublish: "output/sample-rag"
+              pathToPublish: "output/sql-eval-dataset-only"
               artifactName: "eval-reports-scaffold"
             displayName: "Publish eval reports"
 
@@ -146,7 +146,7 @@ stages:
   #             scriptType: bash
   #             scriptLocation: inlineScript
   #             inlineScript: |
-  #               rag-eval --config project-configs/sample-rag-phase2.yaml
+  #               rag-eval --config project-configs/templates/rag-eval/project-template.yaml
   #           displayName: "Run Azure evaluation"
   #
   #         - task: PublishBuildArtifacts@1

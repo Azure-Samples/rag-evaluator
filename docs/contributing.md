@@ -79,6 +79,16 @@ mypy src/
 4. Override `name`, `required_fields`, `system_prompt`, `user_prompt_template`
 5. Register and test like other evaluators
 
+### SQL evaluator
+
+1. Create a new file in `src/rag_eval_framework/evaluators/sql/`
+2. Subclass `BaseEvaluator` from `evaluators/base.py`
+3. Use `require_sqlglot()` from `evaluators/sql/__init__.py` for lazy import gating
+4. Override `name`, `required_fields`, and `evaluate()`
+5. Register in `_create_default_registry()` in `registry.py`
+6. Add the name to `LOCAL_EVALUATOR_CATALOG` in `config/models.py`
+7. Add tests in `tests/test_sql_*.py`
+
 See [Evaluators — Writing a Custom Evaluator](evaluators.md#writing-a-custom-evaluator) for a complete example.
 
 ## Adding a New Report Format

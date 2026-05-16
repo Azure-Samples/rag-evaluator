@@ -29,16 +29,18 @@ JSONL Dataset → Dataset Loader ─┐
              │ on each eval   │    ├─ submit_evaluation()
              └─────────┤              ├─ get_results() (poll)
                        │           └─ normalise results
-        ┌──────────────┼──────────────┐
-        │              │               │
-   Scaffold (3)  Azure SDK (4)   LLM Judges (4)
-   LOCAL only    LOCAL + CLOUD   LOCAL only
-   ├ answer_pres ├ groundedness  ├ accuracy
-   ├ context_pres├ relevance     ├ hallucination
-   └ exact_match ├ retrieval     ├ citation
-                 └ completeness  └ policy_compliance
-        │              │               │
-        └──────────────┼──────────────┘
+        ┌──────────────┼──────────────┬──────────────┐
+        │              │               │              │
+   Scaffold (3)  Azure SDK (4)   LLM Judges (4) SQL (6)
+   LOCAL only    LOCAL + CLOUD   LOCAL only     LOCAL only
+   ├ answer_pres ├ groundedness  ├ accuracy      ├ syntax_validity
+   ├ context_pres├ relevance     ├ hallucination ├ safety_policy
+   └ exact_match ├ retrieval     ├ citation      ├ schema_validity
+                 └ completeness  └ policy_compl  ├ semantic_judge
+                                                 ├ execution_success
+                                                 └ result_match
+        │              │               │              │
+        └──────────────┼──────────────┴──────────────┘
                        ▼
              Per-record pass/fail +
              Aggregate threshold check
@@ -56,8 +58,8 @@ The framework enforces a clear separation between **local** and **cloud**
 evaluation modes at the configuration level:
 
 - Each mode has its own **evaluator catalog** defined in `config/models.py`.
-- `LocalModeConfig` validates evaluators against the 11-evaluator local catalog.
-- `CloudModeConfig` validates evaluators against the 4-evaluator cloud catalog.
+- `LocalModeConfig` validates evaluators against the 17-evaluator local catalog (11 RAG + 6 SQL).
+- `CloudModeConfig` validates evaluators against the 4-evaluator cloud catalog (RAG only).
 - Cross-mode contamination (e.g. scaffold evaluators in cloud mode) is
   rejected at config validation time.
 - Reports include a **mode banner** and **metric descriptions** so readers
@@ -88,11 +90,12 @@ See [Evaluation Modes](modes.md) for the full comparison.
 - `BaseEvaluator` ABC with `required_fields` property and `setup(config)` lifecycle hook
 - `EvaluatorStatus` enum: SUCCESS, SKIPPED, ERROR
 - `EvaluatorResult` model with score, reason, status, metadata, raw_output
-- `EvaluatorRegistry` maps names → instances (11 built-in)
-- Three evaluator tiers:
-  - **Built-in** (`builtin/`) — 3 lightweight deterministic evaluators
+- `EvaluatorRegistry` maps names → instances (17 built-in)
+- Four evaluator tiers:
+  - **Built-in / Scaffold** (`builtin/`) — 3 lightweight deterministic RAG evaluators
   - **Azure SDK** (`azure/`) — 4 adapters wrapping `azure-ai-evaluation` SDK classes
-  - **LLM Judges** (`judges/`) — 4 prompt-based evaluators via Azure OpenAI
+  - **LLM Judges** (`judges/`) — 4 prompt-based RAG evaluators via Azure OpenAI
+  - **SQL** (`sql/`) — 6 evaluators for SQL query assessment (syntax, safety, schema, semantic, execution, result match)
 
 ### Runners (`src/rag_eval_framework/runners/`)
 

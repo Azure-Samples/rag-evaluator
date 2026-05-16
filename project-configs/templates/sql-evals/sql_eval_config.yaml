@@ -1,0 +1,46 @@
+# SQL Evaluation — Dataset-Only (No Database Required)
+#
+# Evaluates LLM-generated SQL queries using syntax, safety, schema,
+# and semantic evaluators.  No live database connection needed.
+#
+# Mode: LOCAL — all evaluators run in the current Python process.
+#
+# Usage:
+#   rag-eval --config project-configs/templates/sql-evals/sql_eval_config.yaml
+
+project_name: sql-eval-dataset-only
+dataset_path: datasets/sample/sql-evaluation/sql_eval_dataset.jsonl
+mode: local
+
+report_format:
+  - json
+  - markdown
+  - html
+output_dir: output
+
+local_mode:
+  evaluators:
+    - sql_syntax_validity
+    - sql_safety_policy
+    - sql_schema_validity
+    # Uncomment to enable LLM-as-a-judge (requires Azure OpenAI credentials):
+    # - sql_semantic_judge
+
+  thresholds:
+    sql_syntax_validity: 0.80
+    sql_safety_policy: 1.0
+    sql_schema_validity: 0.80
+    # sql_semantic_judge: 0.70
+
+  # evaluator_options:
+  #   sql_syntax_validity:
+  #     dialect: sqlite
+  #     allow_multi_statement: false
+
+  # Required for sql_semantic_judge — uncomment and configure:
+  # azure:
+  #   endpoint: "https://your-endpoint.openai.azure.com"
+  #   deployment_name: "gpt-4o-mini"
+  #   api_version: "2024-12-01-preview"
+  #   credential_type: default
+  #   is_reasoning_model: false

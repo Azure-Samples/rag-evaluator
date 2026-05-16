@@ -6,13 +6,22 @@ Evaluators are the core scoring units of the framework. Each evaluator receives 
 
 The evaluator system is **pluggable**: new evaluators can be added by subclassing `BaseEvaluator` and registering them in the evaluator registry, without changing any framework core code.
 
-The framework provides **11 built-in evaluators** across three tiers:
+The framework provides **17 built-in evaluators** across two evaluation domains:
+
+### RAG Evaluators (11)
 
 | Tier | Count | Modes |
 |---|---|---|
 | Scaffold (built-in) | 3 | Local only |
 | Azure SDK | 4 | Local + Cloud |
 | LLM-as-a-judge | 4 | Local only |
+
+### SQL Evaluators (6)
+
+| Tier | Count | Modes |
+|---|---|---|
+| Dataset-only (no DB) | 4 | Local only |
+| DB-backed | 2 | Local only |
 
 Evaluators are validated against per-mode **catalogs** at config time.
 See [Metrics Catalog](metrics-catalog.md) for detailed descriptions,
@@ -115,6 +124,101 @@ Evaluates how well the response cites and references evidence from the context p
 Checks whether the response complies with policy guidelines (from `metadata.policy` or `evaluator_options`).
 
 - **Required fields**: `question`, `response`
+
+## SQL Evaluators
+
+SQL evaluators assess the quality, safety, and correctness of generated SQL queries.
+They are designed for **text-to-SQL** use cases where an LLM generates SQL from a
+natural-language question.  All SQL evaluators run in **local mode only**.
+
+> **RAG vs. SQL:** RAG evaluators assess natural-language responses against retrieved
+> context documents.  SQL evaluators assess generated SQL queries against schema
+> definitions and (optionally) a test database.  The two sets are independent — pick
+> the evaluators that match your use case.
+
+### Dataset-Only SQL Evaluators
+
+These evaluators analyse the SQL string without executing it.  They require the
+`[sql]` optional dependency (`pip install -e ".[sql]"`).
+
+#### `sql_syntax_validity`
+
+Validates SQL syntax by parsing with sqlglot.
+
+| Score | Meaning |
+|---|---|
+| 1.0 | SQL parsed successfully |
+| 0.0 | SQL failed to parse or is empty |
+
+- **Required fields**: `response`
+- **Dependency**: `sqlglot`
+
+#### `sql_safety_policy`
+
+Checks that the SQL respects configurable safety policies (e.g. read-only, no blocked
+operations or tables, required LIMIT clause, tenant filters).
+
+| Score | Meaning |
+|---|---|
+| 1.0 | SQL complies with all policies |
+| 0.0 | One or more policy violations |
+
+- **Required fields**: `response`
+- **Dependency**: `sqlglot`
+
+#### `sql_schema_validity`
+
+Verifies the SQL uses only valid tables and columns from the declared schema context.
+
+| Score | Meaning |
+|---|---|
+| 1.0 | All referenced tables/columns are valid |
+| 0.0 | Unknown table or column references |
+
+- **Required fields**: `response`, `schema_context`
+- **Dependency**: `sqlglot`
+
+#### `sql_semantic_judge`
+
+LLM judge that assesses whether the generated SQL semantically answers the question,
+given the schema context and optionally a reference SQL.
+
+| Score | Meaning |
+|---|---|
+| 0.0–1.0 | Continuous score from the LLM judge |
+
+- **Required fields**: `question`, `response`, `schema_context`
+- **Dependencies**: `sqlglot`, Azure OpenAI credentials + `judge` config
+
+### DB-Backed SQL Evaluators
+
+These evaluators **execute** the generated SQL against a configured test database
+(SQLite) and compare results.  They require the `[sql]` dependency plus a
+`database_path` in `evaluator_options`.
+
+#### `sql_execution_success`
+
+Executes the SQL and checks whether it runs without errors.
+
+| Score | Meaning |
+|---|---|
+| 1.0 | SQL executed successfully |
+| 0.0 | SQL raised a runtime error |
+
+- **Required fields**: `response`
+- **Config**: `evaluator_options.sql_execution_success.database_path`
+
+#### `sql_result_match`
+
+Executes the SQL and compares the result set to the expected output.
+
+| Score | Meaning |
+|---|---|
+| 1.0 | Actual results match expected results |
+| 0.0 | Results differ |
+
+- **Required fields**: `response`, `expected_result`
+- **Config**: `evaluator_options.sql_result_match.database_path`
 
 ## Writing a Custom Evaluator
 
@@ -229,8 +333,8 @@ from rag_eval_framework.evaluators import EvaluatorRegistry, default_registry
 print(default_registry.list_evaluators())
 
 # List evaluators for a specific mode
-print(default_registry.list_for_mode("local"))   # 11 evaluators
-print(default_registry.list_for_mode("cloud"))   # 4 evaluators
+print(default_registry.list_for_mode("local"))   # 17 evaluators (11 RAG + 6 SQL)
+print(default_registry.list_for_mode("cloud"))   # 4 evaluators (RAG only)
 
 # Get an instance (validates against mode catalog)
 evaluator = default_registry.get_for_mode("groundedness", "local")

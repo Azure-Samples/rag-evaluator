@@ -176,11 +176,18 @@ class TestDefaultRegistry:
             "hallucination_judge",
             "citation_judge",
             "policy_compliance_judge",
+            # SQL evaluators
+            "sql_syntax_validity",
+            "sql_safety_policy",
+            "sql_schema_validity",
+            "sql_semantic_judge",
+            "sql_execution_success",
+            "sql_result_match",
         }
         assert set(default_registry.list_evaluators()) == expected
 
     def test_len(self) -> None:
-        assert len(default_registry) == 11
+        assert len(default_registry) == 17
 
     def test_get_returns_instances(self) -> None:
         for name in default_registry.list_evaluators():

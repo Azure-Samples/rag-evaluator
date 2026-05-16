@@ -8,7 +8,7 @@ Evaluate any RAG application by adding a YAML config and a JSONL dataset — no 
 
 ## Key Features
 
-- **11 pluggable evaluators** across three tiers — scaffold, Azure AI Evaluation SDK, and LLM-as-a-judge
+- **17 pluggable evaluators** across four tiers — scaffold, Azure AI Evaluation SDK, LLM-as-a-judge, and SQL
 - **Local and cloud execution** — run evaluators in-process or submit batch jobs to Azure AI Foundry
 - **Config-driven** — one YAML file per project; no code changes to onboard new apps
 - **Strict evaluator catalogs** — mode-aware validation prevents misconfiguration
@@ -17,6 +17,8 @@ Evaluate any RAG application by adding a YAML config and a JSONL dataset — no 
 - **Extensible** — add custom evaluators by subclassing `BaseEvaluator`
 
 ## Supported Evaluators
+
+### RAG Evaluators (11)
 
 | Evaluator | Tier | Local | Cloud | Description |
 |---|---|:---:|:---:|---|
@@ -32,6 +34,17 @@ Evaluate any RAG application by adding a YAML config and a JSONL dataset — no 
 | `citation_judge` | LLM Judge | ✅ | — | Evidence usage from context |
 | `policy_compliance_judge` | LLM Judge | ✅ | — | Compliance with a policy document |
 
+### SQL Evaluators (6)
+
+| Evaluator | Tier | Local | Cloud | Description |
+|---|---|:---:|:---:|---|
+| `sql_syntax_validity` | SQL (dataset-only) | ✅ | — | SQL parses successfully |
+| `sql_safety_policy` | SQL (dataset-only) | ✅ | — | SQL respects safety policies |
+| `sql_schema_validity` | SQL (dataset-only) | ✅ | — | SQL references valid tables/columns |
+| `sql_semantic_judge` | SQL (LLM judge) | ✅ | — | SQL semantically answers the question |
+| `sql_execution_success` | SQL (DB-backed) | ✅ | — | SQL executes without errors |
+| `sql_result_match` | SQL (DB-backed) | ✅ | — | Query results match expected output |
+
 ## Architecture
 
 ```
@@ -42,10 +55,11 @@ Mode: local                           Mode: cloud
 │  LocalRunner          │             │  FoundryRunner           │
 │  ├─ Scaffold evals    │             │  ├─ FoundryAdapter       │
 │  ├─ Azure SDK evals   │             │  │  └─ azure.ai.projects │
-│  └─ LLM Judge evals   │             │  └─ Result normaliser    │
-│  ↓                    │             │  ↓                       │
-│  Reports (JSON/MD/HTML)│             │  Reports (JSON/MD/HTML)  │
-└───────────────────────┘             └──────────────────────────┘
+│  ├─ LLM Judge evals   │             │  └─ Result normaliser    │
+│  └─ SQL evals         │             │  ↓                       │
+│  ↓                    │             │  Reports (JSON/MD/HTML)  │
+│  Reports (JSON/MD/HTML)│             └──────────────────────────┘
+└───────────────────────┘
 ```
 
 ---
@@ -76,10 +90,13 @@ pip install -e ".[all]"      # Everything
 
 ### 2. Run the Sample Evaluation
 
-The included sample dataset uses only scaffold evaluators — no Azure credentials needed:
+The included sample dataset uses only scaffold evaluators — no Azure credentials needed.
+Copy the template and customise for your project:
 
 ```bash
-rag-eval --config project-configs/sample-rag.yaml
+cp project-configs/templates/rag-eval/project-template.yaml my-config.yaml
+# Edit my-config.yaml — set project_name, dataset_path, evaluators
+rag-eval --config my-config.yaml
 ```
 
 ### 3. View Reports
@@ -102,13 +119,13 @@ pytest
 
 1. Copy the template:
    ```bash
-   cp project-configs/templates/project-template.yaml project-configs/my-project.yaml
+   cp project-configs/templates/rag-eval/project-template.yaml my-project.yaml
    ```
 2. Prepare a JSONL dataset at `datasets/my-project/eval.jsonl` (see [Datasets](docs/datasets.md))
 3. Edit your config — choose evaluators, set thresholds, configure Azure credentials if needed
 4. Run:
    ```bash
-   rag-eval --config project-configs/my-project.yaml
+   rag-eval --config my-project.yaml
    ```
 
 See [Getting Started](docs/getting-started.md) for a detailed walkthrough.
@@ -120,7 +137,7 @@ See [Getting Started](docs/getting-started.md) for a detailed walkthrough.
 Each project is driven by a YAML config with a `mode` field and a corresponding mode block:
 
 ```yaml
-# Local mode — all 11 evaluators available
+# Local mode — all 17 evaluators available (11 RAG + 6 SQL)
 project_name: my-rag
 dataset_path: datasets/my-project/eval.jsonl
 mode: local
@@ -180,7 +197,8 @@ rag-eval-framework/
 │   ├── evaluators/
 │   │   ├── builtin/                   # Scaffold evaluators (3)
 │   │   ├── azure/                     # Azure SDK evaluator adapters (4)
-│   │   └── judges/                    # LLM-as-a-judge evaluators (4)
+│   │   ├── judges/                    # LLM-as-a-judge evaluators (4)
+│   │   └── sql/                       # SQL evaluators (6)
 │   ├── runners/
 │   │   ├── local.py                   # In-process evaluation runner
 │   │   ├── cloud.py                   # Azure AI Foundry runner
@@ -189,13 +207,16 @@ rag-eval-framework/
 │   ├── cli/                           # CLI entrypoint (click-based)
 │   └── utils/                         # Logging and normalisation helpers
 ├── project-configs/
-│   ├── sample-rag.yaml                # Minimal local mode example
-│   ├── sample-rag-phase2.yaml         # All evaluator tiers (local)
-│   ├── sample-rag-cloud.yaml          # Cloud mode example
 │   └── templates/
-│       └── project-template.yaml      # Starter template for new projects
+│       ├── rag-eval/
+│       │   └── project-template.yaml  # Starter template for RAG projects
+│       └── sql-evals/
+│           ├── sql_eval_config.yaml   # Dataset-only SQL evaluation
+│           └── sql_eval_config_db.yaml # DB-backed SQL evaluation
 ├── datasets/
-│   └── sample/                        # Synthetic HR Q&A dataset (10 records)
+│   ├── rag-evaluation/                # RAG Q&A dataset (eval.jsonl + questions.csv)
+│   └── sample/
+│       └── sql-evaluation/            # SQL evaluation datasets (dataset-only + DB-backed)
 ├── scripts/
 │   └── collect_rag_data.py            # Data collection utility with adapters
 ├── docs/                              # Full documentation
@@ -212,7 +233,7 @@ rag-eval-framework/
 | [Evaluation Modes](docs/modes.md) | Local vs. Cloud comparison and decision guide |
 | [Local Mode Guide](docs/local-mode.md) | Local mode setup, all 3 evaluator tiers |
 | [Cloud Mode Guide](docs/cloud-mode.md) | Cloud mode setup with Azure AI Foundry |
-| [Metrics Catalog](docs/metrics-catalog.md) | All 11 evaluators — descriptions, scores, required fields |
+| [Metrics Catalog](docs/metrics-catalog.md) | All 17 evaluators — descriptions, scores, required fields |
 | [Configuration Reference](docs/configuration.md) | Full YAML config field reference |
 | [Datasets](docs/datasets.md) | Dataset format, fields, and validation rules |
 | [Evaluators](docs/evaluators.md) | Built-in evaluators and how to create custom ones |
@@ -250,7 +271,7 @@ Both templates include:
 
 ```yaml
 # In your own pipeline — just call rag-eval:
-- run: rag-eval --config project-configs/my-rag.yaml
+- run: rag-eval --config path/to/my-rag.yaml
   # exit 0 → merge allowed
   # exit 3 → quality regression → PR blocked
 ```

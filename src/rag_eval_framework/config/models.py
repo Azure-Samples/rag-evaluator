@@ -23,25 +23,75 @@ LOCAL_EVALUATOR_CATALOG: dict[str, str] = {
     # Built-in / scaffold (no external dependency)
     "answer_presence": "Checks response contains a substantive answer (≥ 2 words).",
     "context_presence": "Checks at least one non-empty context passage was retrieved.",
-    "exact_match_accuracy": "Checks ground-truth answer appears in the response (normalised substring match).",
+    "exact_match_accuracy": (
+        "Checks ground-truth answer appears in the response"
+        " (normalised substring match)."
+    ),
     # Azure AI Evaluation SDK (run locally via SDK)
-    "groundedness": "Azure SDK — measures whether the response is grounded in the provided context.",
-    "relevance": "Azure SDK — measures whether the response is relevant to the question.",
-    "retrieval": "Azure SDK — measures the quality of the retrieved context passages.",
-    "response_completeness": "Azure SDK — measures how completely the response addresses the question relative to the ground truth.",
+    "groundedness": (
+        "Azure SDK — measures whether the response is grounded"
+        " in the provided context."
+    ),
+    "relevance": (
+        "Azure SDK — measures whether the response is relevant"
+        " to the question."
+    ),
+    "retrieval": (
+        "Azure SDK — measures the quality of the retrieved"
+        " context passages."
+    ),
+    "response_completeness": (
+        "Azure SDK — measures how completely the response addresses"
+        " the question relative to the ground truth."
+    ),
     # LLM-as-a-judge (run locally via Azure OpenAI)
-    "accuracy_judge": "LLM judge — assesses factual accuracy of the response vs. ground truth (1-5 scale → 0-1).",
-    "hallucination_judge": "LLM judge — detects claims not supported by the provided context (1-5 scale → 0-1).",
-    "citation_judge": "LLM judge — assesses how well the response uses evidence from context (1-5 scale → 0-1).",
-    "policy_compliance_judge": "LLM judge — checks the response complies with a supplied policy document (1-5 scale → 0-1).",
+    "accuracy_judge": (
+        "LLM judge — assesses factual accuracy of the response"
+        " vs. ground truth (1-5 scale → 0-1)."
+    ),
+    "hallucination_judge": (
+        "LLM judge — detects claims not supported by the"
+        " provided context (1-5 scale → 0-1)."
+    ),
+    "citation_judge": (
+        "LLM judge — assesses how well the response uses"
+        " evidence from context (1-5 scale → 0-1)."
+    ),
+    "policy_compliance_judge": (
+        "LLM judge — checks the response complies with a"
+        " supplied policy document (1-5 scale → 0-1)."
+    ),
+    # SQL evaluators (dataset-only, no database required)
+    "sql_syntax_validity": "Validates SQL syntax via parsing (sqlglot).",
+    "sql_safety_policy": "Checks SQL respects safety policies (read-only, no blocked ops/tables).",
+    "sql_schema_validity": "Verifies SQL uses valid tables/columns from the declared schema.",
+    "sql_semantic_judge": (
+        "LLM judge — assesses whether the SQL semantically"
+        " answers the question (0-1)."
+    ),
+    # SQL evaluators (DB-backed, requires configured test database)
+    "sql_execution_success": "Executes SQL against a test database and checks for runtime success.",
+    "sql_result_match": "Executes SQL and compares results to expected output.",
 }
 
 CLOUD_EVALUATOR_CATALOG: dict[str, str] = {
     # Azure AI Evaluation SDK (run via Azure AI Foundry cloud)
-    "groundedness": "Azure SDK (cloud) — measures whether the response is grounded in the provided context.",
-    "relevance": "Azure SDK (cloud) — measures whether the response is relevant to the question.",
-    "retrieval": "Azure SDK (cloud) — measures the quality of the retrieved context passages.",
-    "response_completeness": "Azure SDK (cloud) — measures how completely the response addresses the question relative to the ground truth.",
+    "groundedness": (
+        "Azure SDK (cloud) — measures whether the response"
+        " is grounded in the provided context."
+    ),
+    "relevance": (
+        "Azure SDK (cloud) — measures whether the response"
+        " is relevant to the question."
+    ),
+    "retrieval": (
+        "Azure SDK (cloud) — measures the quality of the"
+        " retrieved context passages."
+    ),
+    "response_completeness": (
+        "Azure SDK (cloud) — measures how completely the response"
+        " addresses the question relative to the ground truth."
+    ),
 }
 
 # Flat sets for quick membership tests

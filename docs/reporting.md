@@ -99,7 +99,7 @@ Arbitrary metadata from the config (e.g., team, environment) plus:
   },
   "project_name": "sample-rag",
   "timestamp": "2026-03-30T12:00:00+00:00",
-  "dataset_path": "datasets/sample/eval.jsonl",
+  "dataset_path": "datasets/rag-evaluation/eval.jsonl",
   "total_records": 10,
   "evaluators_used": ["answer_presence", "context_presence", "exact_match_accuracy"],
   "aggregate_scores": {
@@ -129,7 +129,7 @@ Arbitrary metadata from the config (e.g., team, environment) plus:
     "environment": "development"
   },
   "skipped_evaluators": {},
-  "config_reference": "project-configs/sample-rag.yaml"
+  "config_reference": "project-configs/templates/rag-eval/project-template.yaml"
 }
 ```
 
@@ -156,7 +156,7 @@ Reports are written to `{output_dir}/{project_name}/`. The directory is created 
 The output directory can be overridden via CLI:
 
 ```bash
-rag-eval --config project-configs/sample-rag.yaml --output /tmp/reports
+rag-eval --config my-config.yaml --output /tmp/reports
 ```
 
 ## Future Enhancements

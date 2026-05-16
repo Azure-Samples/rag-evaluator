@@ -28,8 +28,6 @@ from rag_eval_framework.config.models import (
     ProjectConfig,
 )
 from rag_eval_framework.evaluators.registry import default_registry
-from tests.conftest import make_config, make_record
-
 
 # ---------------------------------------------------------------------------
 # Evaluator catalog definitions
@@ -39,8 +37,8 @@ from tests.conftest import make_config, make_record
 class TestEvaluatorCatalogDefinitions:
     """Verify catalog constants are correctly defined."""
 
-    def test_local_catalog_has_11_evaluators(self) -> None:
-        assert len(LOCAL_EVALUATOR_CATALOG) == 11
+    def test_local_catalog_has_15_evaluators(self) -> None:
+        assert len(LOCAL_EVALUATOR_CATALOG) == 17
 
     def test_cloud_catalog_has_4_evaluators(self) -> None:
         assert len(CLOUD_EVALUATOR_CATALOG) == 4
@@ -64,7 +62,7 @@ class TestEvaluatorCatalogDefinitions:
 
     def test_cloud_catalog_only_sdk_evaluators(self) -> None:
         expected = {"groundedness", "relevance", "retrieval", "response_completeness"}
-        assert CLOUD_EVALUATOR_NAMES == expected
+        assert expected == CLOUD_EVALUATOR_NAMES
 
     def test_catalogs_have_descriptions(self) -> None:
         for name, desc in LOCAL_EVALUATOR_CATALOG.items():
@@ -87,7 +85,7 @@ class TestLocalModeConfig:
 
     def test_valid_all_evaluators(self) -> None:
         cfg = LocalModeConfig(evaluators=list(LOCAL_EVALUATOR_NAMES))
-        assert len(cfg.evaluators) == 11
+        assert len(cfg.evaluators) == 17
 
     def test_invalid_evaluator_rejected(self) -> None:
         with pytest.raises(ValidationError, match="not in the local catalog"):
@@ -251,7 +249,7 @@ class TestRegistryModeAware:
 
     def test_list_for_local_mode(self) -> None:
         names = default_registry.list_for_mode("local")
-        assert len(names) == 11
+        assert len(names) == 17
         assert "answer_presence" in names
         assert "accuracy_judge" in names
         assert "groundedness" in names
